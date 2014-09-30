@@ -72,6 +72,7 @@ align 32
   vmovdqu [ks+0 ], key1 
   
   ex1 xmm4, key1
+  ;vaeskeygenassist xmm4, key1, 0
   vpshufd xmm2, xmm4, 010101010b
   lmix key2, xmm4, xmm2
 
