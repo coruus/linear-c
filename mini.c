@@ -53,14 +53,14 @@ int test_expansion(void) {
 }
 
 typedef uint64_t T;
-#define N (1 << 18)
+#define N (1 << 21)
 #define cpc(COUNTER) (((double)(COUNTER)) / (double)(N))
 #define pcp(COUNTER) printf("%10s=%5.1f\n", #COUNTER, cpc(COUNTER))
 
 #define cycles __builtin_readcyclecounter
 
 #define REP(COUNTER, STMT) \
-do {T COUNTER = cycles(); \
+do {COUNTER = cycles(); \
   for (uint64_t i = 0; i < N; i++) { \
     STMT; \
   } \
@@ -71,14 +71,18 @@ int time_expansion(void) {
   uint32_t ks_ossl[60] = {0};
   uint32_t ks_this[60] = {0};
   AesKey aeskey;
+  T ossl, local;
   REP(ossl, AES_set_encrypt_key((void*)test_k, 256, &aeskey));
   REP(local, Rijndael_k32b16_expandkey(ks_this, test_k));
   printf("\n\n");
-  REP(ossl, AES_set_encrypt_key(&aeskey, 256, &aeskey));
-  REP(ossl, AES_set_encrypt_key(&aeskey, 256, &aeskey));
+  REP(ossl, AES_set_encrypt_key(aeskey.rd_key + 60-16, 256, &aeskey));
+  REP(ossl, AES_set_encrypt_key(aeskey.rd_key + 60-16, 256, &aeskey));
   REP(local, Rijndael_k32b16_expandkey(ks_this, ks_this+60-16));
   REP(local, Rijndael_k32b16_expandkey(ks_this, ks_this+60-16));
-  
+ 
+  printf("ratio=%5.2f\n", cpc(local) / cpc(ossl));
+  printf("ratio=%5.2f\n", cpc(ossl) / cpc(local));
+
   return 0;
 }
 
@@ -87,8 +91,8 @@ int time_expansion(void) {
 int main(void) {
   test_expansion();
   time_expansion();
-  //return 0;
-  uint8_t bb[16]; // = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+  return 0;
+/*  uint8_t bb[16]; // = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
   for (int i = 0; i < 16; i++) {
     bb[i] = i * 17;
   }
@@ -113,5 +117,5 @@ return 0;
   }
   //aesinline(o, o, k);
   printbuf(o, 32);
-  return 0;
+  return 0;*/
 }

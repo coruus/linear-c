@@ -198,8 +198,9 @@ _exk2:
 %define ks rdi
 %define rc xmm12
 
-%macro k32_expand 1
-  vaesenclast xmm2, key2, ZERO
+%macro k32_expandm 1
+  vpxor xmm2, xmm2, xmm2
+  vaesenclast xmm2, key2, xmm2
   vpshufb xmm2, xmm2, [rel __shuf_k2]
   vpxor xmm2, xmm2, rc
   vpslld rc, rc, 1
@@ -208,9 +209,10 @@ _exk2:
 
   vmovdqu [ks+0 ], key1 
   
-  vpxor ZERO, ZERO, ZERO
+  ;vpxor ZERO, ZERO, ZERO
+  vpxor t1, t1, t1
   vpshufb xmm2, key1, [rel __shuf_k1]
-  vaesenclast xmm2, xmm2, ZERO
+  vaesenclast xmm2, xmm2, t1
   lmix key2, xmm4, xmm2
 
   vmovdqu [ks+16], key2
@@ -218,10 +220,19 @@ _exk2:
   add ks, 32
 %endmacro
 
+k32_expandf:
+  k32_expandm 0
+  ret
+
+%macro k32_expand 1
+ call k32_expandf
+%endmacro
+
 %macro loadk32 0
   vmovdqu key1, [rsi+0 ]
   vmovdqu key2, [rsi+16]
 %endmacro
+
 
 align 32
 global _Rijndael_k32b16_expandkey 
@@ -244,11 +255,20 @@ _Rijndael_k32b16_expandkey:
   k32_expand 0x10
   k32_expand 0x20
 
-  vaeskeygenassist xmm2, key2, 0x40
-  vpshufd xmm2, xmm2, 011111111b
+
+  vpxor xmm2, xmm2, xmm2
+  vaesenclast xmm2, key2, xmm2
+  vpshufb xmm2, xmm2, [rel __shuf_k2]
+  vpxor xmm2, xmm2, rc
+  
   lmix key1, xmm4, xmm2
 
-  vmovdqu [ks], key1
-
+  vmovdqu [ks+0 ], key1 
+;  vpxor xmm0, xmm0, xmm0
+;  vpxor xmm1, xmm1, xmm1
+;  vpxor xmm2, xmm2, xmm2
+;  vpxor xmm3, xmm3, xmm3
+;  vpxor xmm4, xmm4, xmm4
   vzeroall
+
   ret
