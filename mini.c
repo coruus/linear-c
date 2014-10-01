@@ -21,6 +21,7 @@ extern void exk1_lmix(void*);
 extern void exk1(void*);
 extern void exk2(void*);
 extern void exiso1(void*);
+extern void exiso2(void*);
 #define AES_set_encrypt_key aesni_set_encrypt_key
 extern void AES_set_encrypt_key(const void*, int, AesKey*);
 
@@ -75,8 +76,8 @@ int time_expansion(void) {
   printf("\n\n");
   REP(ossl, AES_set_encrypt_key(&aeskey, 256, &aeskey));
   REP(ossl, AES_set_encrypt_key(&aeskey, 256, &aeskey));
-  REP(local, Rijndael_k32b16_expandkey(ks_this, ks_this));
-  REP(local, Rijndael_k32b16_expandkey(ks_this, ks_this));
+  REP(local, Rijndael_k32b16_expandkey(ks_this, ks_this+60-16));
+  REP(local, Rijndael_k32b16_expandkey(ks_this, ks_this+60-16));
   
   return 0;
 }
@@ -86,17 +87,21 @@ int time_expansion(void) {
 int main(void) {
   test_expansion();
   time_expansion();
-  return 0;
-  uint32_t a[4] = {0x00, 0x01, 0x02, 0x03};
+  //return 0;
+  uint8_t bb[16]; // = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+  for (int i = 0; i < 16; i++) {
+    bb[i] = i * 17;
+  }
+  uint32_t a[4];// = {0x00, 0x01, 0x02, 0x03};
   uint32_t b[4];
-  memcpy(b, a, 4*4);
+  memcpy(a, bb, 4*4);
+  memcpy(b, bb, 4*4);
 
-  exiso1(a);
+  exiso2(a);
   printv(a);
-  exk1(b);
+  exk2(b);
   printv(b);
-
-  
+return 0;
   uint32_t c[4] = {0x00, 0x01, 0x02, 0x03};
   exk1_lmix(c);
   printv(c);

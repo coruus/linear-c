@@ -24,10 +24,10 @@ db 12, 13, 14, 15
 db 12, 13, 14, 15
 
 __shuf_k2:
-db 13, 14, 15, 12
-db 13, 14, 15, 12
-db 13, 14, 15, 12
-db 13, 14, 15, 12
+db 9, 6, 3, 12
+db 9, 6, 3, 12
+db 9, 6, 3, 12
+db 9, 6, 3, 12
 
 __xor:
 db 0, 0, 0, 0
@@ -95,8 +95,8 @@ _exiso1:
 
   vmovdqu xmm1, [rdi]
   vpxor xmm0, xmm0, xmm0
-  vaesenclast xmm1, xmm1, xmm0
   vpshufb xmm1, xmm1, [rel __shuf_k1]
+  vaesenclast xmm1, xmm1, xmm0
   vmovdqu [rdi], xmm1
   ret
 
@@ -107,7 +107,8 @@ _exiso2:
 %define rc [rel __xor4]
   vmovdqu xmm1, [rdi]
   vpxor xmm0, xmm0, xmm0
-  vaesenclast xmm1, xmm1, xmm0
+  %define ZERO xmm0
+  vaesenclast xmm1, xmm1, ZERO
   vpshufb xmm1, xmm1, [rel __shuf_k2]
   vpxor xmm1, xmm1, rc
   vmovdqu [rdi], xmm1
@@ -117,7 +118,7 @@ global _exk2
 _exk2:
 
   vmovdqu xmm1, [rdi]
-  vaeskeygenassist xmm1, xmm1, 0x1
+  vaeskeygenassist xmm1, xmm1, 0x01
   vpshufd xmm1, xmm1, 011111111b
   vmovdqu [rdi], xmm1
 
@@ -149,17 +150,6 @@ _exk2:
 %endmacro
 
 
-global _exk1_lmix
-_exk1_lmix:
-  call _exk1
-  vzeroall
-  vmovdqu xmm1, [rdi]
-  lmix xmm1, xmm2, xmm3
-  vmovdqu [rdi], xmm1
-  ret
-
-; vpxor ZERO, ZERO, ZERO
-
 %macro ex1 2
   vpshufb %1, %2, [rel __shuf_k1]
   vaesenclast %1, %1, ZERO
@@ -176,40 +166,25 @@ _exk1_lmix:
 %define key2 xmm6
 
 %define ks rdi
-align 32
-_Rijndael_k32_expand_two:
-
-  vpshufd xmm2, xmm2, 011111111b
-  lmix key1, xmm4, xmm2
-
-  vmovdqu [ks+0 ], key1 
-  
-  vaeskeygenassist xmm4, key1, 0
-  vpshufd xmm2, xmm4, 010101010b
-  lmix key2, xmm4, xmm2
-
-  vmovdqu [ks+16], key2
-
-  add ks, 32
-  ret
-
-%macro k32_expandf 1
-  vaeskeygenassist xmm2, key2, %1
-  call _Rijndael_k32_expand_two
-%endmacro
-
+%define rc xmm12
 
 %macro k32_expand 1
-  vaeskeygenassist xmm2, key2, %1
-  vpshufd xmm2, xmm2, 011111111b
+  ;vaeskeygenassist xmm2, key2, %1
+  ;vpshufd xmm2, xmm2, 011111111b
+
+  vaesenclast xmm2, key2, ZERO
+  vpshufb xmm2, xmm2, [rel __shuf_k2]
+  vpxor xmm2, xmm2, rc
+  vpslld rc, rc, 1
+  
   lmix key1, xmm4, xmm2
 
   vmovdqu [ks+0 ], key1 
   
 ;  vaeskeygenassist xmm4, key1, 0
   vpxor ZERO, ZERO, ZERO
-  ex1 xmm4, key1
-  vpshufd xmm2, xmm4, 010101010b
+  ex1 xmm2, key1
+;  vmovdqu xmm2, xmm4
   lmix key2, xmm4, xmm2
 
   vmovdqu [ks+16], key2
@@ -231,6 +206,7 @@ _Rijndael_k32b16_expandkey:
 
   ; Load the shuffle mask used by key_expansion
 ;  vmovdqa shuffle_mask, [_Rijndael_k32_shuffle_mask wrt rip]
+  vmovdqu rc, [__xor4 wrt rip]
   vmovdqu [ks+0 ], key1
   vmovdqu [ks+16], key2
   add ks, 32
