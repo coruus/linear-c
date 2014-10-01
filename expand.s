@@ -53,7 +53,8 @@ __shuf_l:
 .endm
 
 .text
-__Rijndael_k8w4_expandkey_doubleround:
+.L_DR:
+//__Rijndael_k8w4_expandkey_doubleround:
   VPXOR           T2,   T2, T2
   VAESENCLAST     T2, KEY2, T2
   VPSHUFB     SHUF_2,   T2, T2
@@ -90,12 +91,12 @@ _Rijndael_k8w4_expandkey:
   ADD          $32, KS
 
   // Rounds 2..13
-  CALL _DR
-  CALL _DR
-  CALL _DR
-  CALL _DR
-  CALL _DR
-  CALL _DR
+  CALL .L_DR
+  CALL .L_DR
+  CALL .L_DR
+  CALL .L_DR
+  CALL .L_DR
+  CALL .L_DR
 
   // Round 14
   VPXOR           T2,   T2, T2

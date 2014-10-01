@@ -92,7 +92,8 @@ __shuf_l:
 
 
 	.section	__TEXT,__text,regular,pure_instructions
-__Rijndael_k8w4_expandkey_doubleround:
+.L_DR:
+
 	vpxor	%xmm1, %xmm1, %xmm1
 	vaesenclast	%xmm1, %xmm3, %xmm1
 	vpshufb	__shuf_2(%rip), %xmm1, %xmm1
@@ -143,12 +144,12 @@ _Rijndael_k8w4_expandkey:
 	addq	$32, %rdi
 
 
-	callq	__Rijndael_k8w4_expandkey_doubleround
-	callq	__Rijndael_k8w4_expandkey_doubleround
-	callq	__Rijndael_k8w4_expandkey_doubleround
-	callq	__Rijndael_k8w4_expandkey_doubleround
-	callq	__Rijndael_k8w4_expandkey_doubleround
-	callq	__Rijndael_k8w4_expandkey_doubleround
+	callq	.L_DR
+	callq	.L_DR
+	callq	.L_DR
+	callq	.L_DR
+	callq	.L_DR
+	callq	.L_DR
 
 
 	vpxor	%xmm1, %xmm1, %xmm1
