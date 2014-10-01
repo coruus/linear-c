@@ -53,6 +53,27 @@ __shuffle_mask:
   db 0x0, 0x1, 0x2, 0x3     
   db 0x4, 0x5, 0x6, 0x7
   db 0x8, 0x9, 0xa, 0xb
+
+
+__shuf1:
+  db 0xff, 0xff, 0xff, 0xff  
+  db 0x0, 0x1, 0x2, 0x3     
+  db 0x4, 0x5, 0x6, 0x7
+  db 0x8, 0x9, 0xa, 0xb
+
+__shuf2:
+  db 0xff, 0xff, 0xff, 0xff  
+  db 0xff, 0xff, 0xff, 0xff  
+  db 0x0, 0x1, 0x2, 0x3     
+  db 0x4, 0x5, 0x6, 0x7
+
+__shuf3:
+  db 0xff, 0xff, 0xff, 0xff  
+  db 0xff, 0xff, 0xff, 0xff  
+  db 0xff, 0xff, 0xff, 0xff  
+  db 0x0, 0x1, 0x2, 0x3     
+
+
 %define shuffle_mask [rel __shuffle_mask]
 %define ZERO xmm15
 
@@ -135,18 +156,33 @@ _exk2:
   vpshufd %1, %1, 010101010b
 %endmacro
 
+%define lmixv 1
+
 %macro lmix 3
   %define key %1 ; key
   %define t1 %2  ; xmm4
   %define t2 %3  ; xmm2
 
+%if lmixv == 1
   vpshufb t1, key, shuffle_mask
-  vpxor   key, key, t1          
+  vpxor   key, key, t1
   vpshufb t1, t1, shuffle_mask  
-  vpxor   key, key, t1          
+  vpxor   key, key, t1
   vpshufb t1, t1, shuffle_mask  
-  vpxor   key, key, t1          
-  vpxor   key, key, t2          
+  vpxor   key, key, t1
+  vpxor   key, key, t2
+%endif
+%if lmixv == 2
+
+  vpshufb xmm10, key, [__shuf1 wrt rip]
+  vpshufb xmm11, key, [__shuf2 wrt rip] 
+  vpshufb xmm12, key, [__shuf3 wrt rip]
+  vpxor   key, key, xmm10
+  vpxor   key, key, xmm11
+  vpxor   key, key, xmm12
+  vpxor   key, key, t2
+
+%endif
 %endmacro
 
 
@@ -155,12 +191,6 @@ _exk2:
   vaesenclast %1, %1, ZERO
 %endmacro
 
-%macro ex2 2
-  vaesenclast %1, %2, ZERO
-  vpshufb %1, %1, [rel __shuf_k2]
-  vpxor %1, %1, rc
-  vpslld rc, rc, 1
-%endmacro
 
 %define key1 xmm5
 %define key2 xmm6
@@ -169,9 +199,6 @@ _exk2:
 %define rc xmm12
 
 %macro k32_expand 1
-  ;vaeskeygenassist xmm2, key2, %1
-  ;vpshufd xmm2, xmm2, 011111111b
-
   vaesenclast xmm2, key2, ZERO
   vpshufb xmm2, xmm2, [rel __shuf_k2]
   vpxor xmm2, xmm2, rc
@@ -181,10 +208,9 @@ _exk2:
 
   vmovdqu [ks+0 ], key1 
   
-;  vaeskeygenassist xmm4, key1, 0
   vpxor ZERO, ZERO, ZERO
-  ex1 xmm2, key1
-;  vmovdqu xmm2, xmm4
+  vpshufb xmm2, key1, [rel __shuf_k1]
+  vaesenclast xmm2, xmm2, ZERO
   lmix key2, xmm4, xmm2
 
   vmovdqu [ks+16], key2
